@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   schedule:
-    - cron: '0 20 * * 6' # 每周日日本时间凌晨5点
+    - cron: '0 5 * * 0' # 仅周日凌晨5点触发
   workflow_dispatch:
 
 jobs:
@@ -60,10 +60,8 @@ jobs:
           tag_name: latest-build
           name: "Latest PlotSquared Build"
           body: |
-            Automated PlotSquared build.
+            自动 PlotSquared 构建.
 
-            Source:
-            https://github.com/IntellectualSites/PlotSquared
 
             Build:
             ${{ github.run_number }}
@@ -73,8 +71,9 @@ jobs:
             external-plotsquared/Bukkit/build/libs/*.jar
 
           draft: false
-          prerelease: true
+          prerelease: false
           overwrite_files: true
+          append_body: false
           make_latest: true
 
         env:
