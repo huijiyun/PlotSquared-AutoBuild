@@ -1,0 +1,81 @@
+name: Build and Deploy PlotSquared
+
+on:
+  schedule:
+    - cron: '0 20 * * 6' # 每周日日本时间凌晨5点
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+
+      # 拉取上游 PlotSquared
+      - name: Clone Upstream PlotSquared
+        run: |
+          git clone --depth 1 --branch main https://github.com/IntellectualSites/PlotSquared.git ./external-plotsquared
+
+
+      # Java 21
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+
+      # Gradle Wrapper检查
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+
+      # 构建
+      - name: Build PlotSquared
+        working-directory: ./external-plotsquared
+        run: |
+          chmod +x gradlew
+          ./gradlew clean build
+
+
+      # 检查jar
+      - name: Verify Artifacts
+        run: |
+          ls -lah ./external-plotsquared/**/build/libs/
+
+          if ! ls ./external-plotsquared/**/build/libs/*.jar; then
+            echo "No jar found"
+            exit 1
+          fi
+
+
+      # 发布Release
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          name: "Latest PlotSquared Build"
+          body: |
+            Automated PlotSquared build.
+
+            Source:
+            https://github.com/IntellectualSites/PlotSquared
+
+            Build:
+            ${{ github.run_number }}
+
+          files: |
+            external-plotsquared/Core/build/libs/*.jar
+            external-plotsquared/Bukkit/build/libs/*.jar
+
+          draft: false
+          prerelease: true
+          overwrite_files: true
+          make_latest: true
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
